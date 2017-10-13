@@ -37,13 +37,14 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    	printf("total %d\n",total_images);
 	    	
 	    	while(!finish){
-	    		int posicao = 3073*imagem_atual;
-	    		printf("%d\n", imagem_atual);
-	    		
 	    		if(imagem_atual==total_images) {
 	    			finish = true;
 	    			printf("terminei\n");
 	    		}
+	    		
+	    		int posicao = 3073*imagem_atual;
+	    		printf("%d\n", imagem_atual);
+	    		
 	    		label = new char [label_size]; //we request the allocation of a memory block large enough to hold the entire file
 	    		image = new char [image_size];
 
