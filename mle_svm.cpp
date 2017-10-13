@@ -34,13 +34,16 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    	int file_size = (int)size;
 	    	int total_images = file_size/(label_size+image_size);
 	    	int imagem_atual =0;
+	    	//printf("total %d\n",total_images);
 	    	
 	    	while(!finish){
 	    		if(imagem_atual==total_images) {
 	    			finish = true;
+	    	//		printf("terminei\n");
 	    		}
 
 	    		int posicao = 3073*imagem_atual;
+	    	//	printf("%d\n", imagem_atual);
 	    		
 	    		label = new char [label_size]; //we request the allocation of a memory block large enough to hold the entire file
 	    		image = new char [image_size];
@@ -83,17 +86,34 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 
 int main(int argc, char const *argv[])
 {
+	std::vector<int> labels; //vetor que salva as classificações das imagens
+	std::vector<Mat> images; //vetor que salva as imagens
 
-  	std::string data_path_dir  =  std::string(argv[1]);
-		
-		for(int n_train = 1; n_train <6;n_train++){
-			std::vector<int> labels; //vetor que salva as classificações das imagens
-			std::vector<Mat> images; //vetor que salva as imagens
-			std::string data_path = data_path_dir+ "/data_batch_" + std::to_string(n_train) + ".bin";
-			//"C:/Users/MC/Documents/2o semestre 2017/sistemas_inteligentes/ep_2/cifar-10-batches-bin"
-			
-			ler_bin(data_path, labels, images);
-		}		
+	ler_bin(argv[1], labels, images);
+
+	int numberOfSamples = labels.size(); //Número de amostras do arquivo de entrada
+
+	Mat_<FLT> test; //test-para pegar as dimensões da imagem utilizada;
+	le(test, images[0]); //pega uma imagem, assume-se que todas as imagens tem o mesmo tamanho
+	int imgArea = test.rows*test.cols;
+	float numberOfHits=0; //Número de acertos de predição
+	Mat results(numberOfSamples, 1, CV_32FC1); //Matriz com os resultados das predições
+
+	Mat outputs(numberOfSamples,1,CV_32FC1,true); //Construtor da matriz de saídas para o treino
+	Mat training(numberOfSamples,imgArea,CV_32FC1); //Construtor da matriz que conterá o dados de treino
+	Mat imgPredict(1,imgArea,CV_32FC1); //Construtor da matriz que conterá a imagem de teste
+	//Mat_<FLT> imgAux; le(imgAux, archives[numberOfTest]);//para pegar a imagem que será "deixada de fora"
+
+	//Colocando a imagem de predição como matriz de float
+	for(int aux=0; aux<numberOfSamples;aux++){
+		int ii=0;
+		for (int l = 0; l<test.rows; l++) {
+			for (int c = 0; c < test.cols; c++) {
+    	    	imgPredict.at<float>(0,ii) = imgAux(l,c);
+    	   		ii++;
+    		}
+		}
+	}
 
 	
 }
