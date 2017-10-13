@@ -30,13 +30,17 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	  		size = file.tellg(); //when we call to member tellg(), we will directly obtain the size of the file.
 	    	label_size = 1;
 	    	image_size = 3072;
-	    	int posicao = 0;
-
+	    	
 	    	int file_size = (int)size;
-	    	printf("total %d\n",file_size);
+	    	int total_images = file_size/(label_size+image_size);
+	    	int imagem_atual =0;
+	    	printf("total %d\n",total_images);
+	    	
 	    	while(!finish){
-	    		printf("%d", posicao);
-	    		if(posicao==file_size) {
+	    		int posicao = 3073*imagem_atual;
+	    		printf("%d\n", imagem_atual);
+	    		
+	    		if(imagem_atual==total_images) {
 	    			finish = true;
 	    			printf("terminei\n");
 	    		}
@@ -50,7 +54,7 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    		
 	    		labels.push_back(atoi(label));
 	    			    	
-	    		posicao+=sizeof(label);
+	    		posicao+=1;
 	    		file.seekg (posicao, ios::beg);
 	    		file.read (image, image_size);
 	    	
@@ -69,6 +73,7 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    		images.push_back(imagem);
 	    		delete[] label;
 	    		delete[] image;
+	    		imagem_atual++;
 	    	}
 
 		    file.close(); //and finally close it:

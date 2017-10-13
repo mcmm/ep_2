@@ -42,7 +42,7 @@ int main(int argc, char const *argv[])
 	    								//(remember that we opened the file with this pointer at the end)
 	    	file.read (label, label_size); //then we read the entire file
 	    	
-	    	posicao+=sizeof(label);
+	    	posicao++;																								;
 	    	file.seekg (posicao, ios::beg);
 	    	file.read (image, image_size);
 
