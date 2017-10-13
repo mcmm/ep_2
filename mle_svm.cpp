@@ -102,30 +102,25 @@ int main(int argc, char const *argv[])
 	CvSVM svm_model_recognition;
 
 	for(int n_train = 1; n_train <6;n_train++){
-		printf("treino %d\n", n_train);
+		//printf("treino %d\n", n_train);
 		std::vector<int> labels; //vetor que salva as classificações das imagens
 		std::vector<Mat> images; //vetor que salva as imagens
 		std::string data_path = data_path_dir+ "/data_batch_" + std::to_string(n_train) + ".bin";
 		ler_bin(data_path, labels, images);
 	
 		int numberOfSamples = images.size()-1; //Número de amostras do arquivo de entrada
-		printf("amostras %d\n", numberOfSamples);
-	
-		//Mat_<FLT> test; //test-para pegar as dimensões da imagem utilizada;
-		//le(test, images[0]); //pega uma imagem, assume-se que todas as imagens tem o mesmo tamanho
+
 		int imgArea = images[0].rows*images[0].cols;
-		//printf("area %d\n", imgArea);
-		
+
 	
 		Mat outputs(numberOfSamples,1,CV_32FC1,true); //Construtor da matriz de saídas para o treino
 		Mat training(numberOfSamples,imgArea,CV_32FC1); //Construtor da matriz que conterá o dados de treino
 		
 		for(int contador=0; contador<numberOfSamples; contador++){
 			int ii = 0; // Current column in training_mat
-			//printf("contador %d\n", contador);
-			//Mat_<FLT> image; le(image, images[contador]);//para pegar cada imagem
+
 			outputs.at<float>(contador,0) = labels[contador];
-			//printf("output %d\n",labels[contador]);
+			
 			for (int l = 0; l<images[0].rows; l++) {
 		    	for (int c = 0; c < images[0].cols; c++) {
 		   	   		training.at<float>(contador,ii) = images[contador].at<float>(l,c);
@@ -140,39 +135,41 @@ int main(int argc, char const *argv[])
 
 	//predição para testar o modelo
 	std::string test_path = data_path_dir+ "/test_batch.bin";
-	std::vector<int> labels_test; //vetor que salva as classificações das imagens
-	std::vector<Mat> images_test; //vetor que salva as imagens
-	ler_bin(test_path, labels_test, images_test);
+	std::vector<int> labels; //vetor que salva as classificações das imagens
+	std::vector<Mat> images; //vetor que salva as imagens
+	std::vector<Mat> img_predict; //vetor que salva as imagens
+	ler_bin(test_path, labels, images);
+
+
+	int numberOfPreds = images.size()-1;
+	int imgArea = images[0].rows*images[0].cols;
 	
+	Mat img_aux(1,imgArea,CV_32FC1);; //Construtor da matriz que conterá o dados de predicao
 	
-	Mat outputs(numberOfSamples,1,CV_32FC1,true); //Construtor da matriz de saídas para o treino
-	Mat training(numberOfSamples,imgArea,CV_32FC1); //Construtor da matriz que conterá o dados de treino
-		
-	for(int contador=0; contador<numberOfSamples; contador++){
-		int ii = 0; // Current column in training_mat
-		//printf("contador %d\n", contador);
-		//Mat_<FLT> image; le(image, images[contador]);//para pegar cada imagem
-		outputs.at<float>(contador,0) = labels[contador];
-		//printf("output %d\n",labels[contador]);
+
+	//Colocando a imagem de predição no formato correto
+	for(int aux=0; aux<numberOfPreds;aux++){
+		int ii=0;
+		Mat_<COR> imgAux;
+		imgAux = images[aux];
 		for (int l = 0; l<images[0].rows; l++) {
-	    	for (int c = 0; c < images[0].cols; c++) {
-	   	   		training.at<float>(contador,ii) = images[contador].at<float>(l,c);
-	   	   		ii++;
-	   		}
+			for (int c = 0; c < images[0].cols; c++) {
+    	    	img_aux.at<float>(0,ii) = imgAux.at<float>(l,c);
+    	   		ii++;
+    		}
 		}
+		img_predict.push_back(img_aux);
 	}
 
-	int numberOfPreds = images_test.size()-1;
 	float numberOfHits=0; //Número de acertos de predição
 	Mat results(numberOfPreds, 1, CV_32FC1); //Matriz com os resultados das predições
 
 	for(int n_pred=0; n_pred<numberOfPreds; n_pred++ ){
-		float prediction = svm_model_recognition.predict(images_test[n_pred]);
+		float prediction = svm_model_recognition.predict(img_predict[n_pred]);
 		results.at<float>(n_pred,0) = prediction;
-		if(prediction==labels_test[n_pred]) numberOfHits++;
-		else {
-			printf("Correta = %.0f Classificada = %.0f \n", labels_test[n_pred], prediction);
-		}
+		//printf("result %f\n", prediction);
+		//printf("label %d\n", labels[n_pred] );
+		if(prediction==(float)labels[n_pred]) numberOfHits++;
 	}
 
 	float numberOfErrors = (float)numberOfPreds - numberOfHits;
