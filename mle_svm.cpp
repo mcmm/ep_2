@@ -53,7 +53,9 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    			    							//(remember that we opened the file with this pointer at the end)
 	    		file.read (label, label_size); //then we read the file
 	    		
-	    		labels.push_back(atoi(label));
+	    		int label_int = static_cast<int>( *label);
+	    		//printf("label %d\n",label_int);
+	    		labels.push_back(label_int);
 	    			    	
 	    		posicao+=1;
 	    		file.seekg (posicao, ios::beg);
@@ -86,34 +88,98 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 
 int main(int argc, char const *argv[])
 {
-	std::vector<int> labels; //vetor que salva as classificações das imagens
-	std::vector<Mat> images; //vetor que salva as imagens
+	std::string data_path_dir  =  std::string(argv[1]);
 
-	ler_bin(argv[1], labels, images);
+	//Declaração da rede neural
+		//definição dos parâmetros
+	CvSVMParams params;
+	params.svm_type = CvSVM::C_SVC;
+	params.kernel_type = CvSVM::POLY;
+	params.gamma = 3;
+	params.degree = 3;
+    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
+	
+	CvSVM svm_model_recognition;
 
-	int numberOfSamples = labels.size(); //Número de amostras do arquivo de entrada
+	for(int n_train = 1; n_train <6;n_train++){
+		printf("treino %d\n", n_train);
+		std::vector<int> labels; //vetor que salva as classificações das imagens
+		std::vector<Mat> images; //vetor que salva as imagens
+		std::string data_path = data_path_dir+ "/data_batch_" + std::to_string(n_train) + ".bin";
+		ler_bin(data_path, labels, images);
+	
+		int numberOfSamples = images.size()-1; //Número de amostras do arquivo de entrada
+		printf("amostras %d\n", numberOfSamples);
+	
+		//Mat_<FLT> test; //test-para pegar as dimensões da imagem utilizada;
+		//le(test, images[0]); //pega uma imagem, assume-se que todas as imagens tem o mesmo tamanho
+		int imgArea = images[0].rows*images[0].cols;
+		//printf("area %d\n", imgArea);
+		
+	
+		Mat outputs(numberOfSamples,1,CV_32FC1,true); //Construtor da matriz de saídas para o treino
+		Mat training(numberOfSamples,imgArea,CV_32FC1); //Construtor da matriz que conterá o dados de treino
+		
+		for(int contador=0; contador<numberOfSamples; contador++){
+			int ii = 0; // Current column in training_mat
+			//printf("contador %d\n", contador);
+			//Mat_<FLT> image; le(image, images[contador]);//para pegar cada imagem
+			outputs.at<float>(contador,0) = labels[contador];
+			//printf("output %d\n",labels[contador]);
+			for (int l = 0; l<images[0].rows; l++) {
+		    	for (int c = 0; c < images[0].cols; c++) {
+		   	   		training.at<float>(contador,ii) = images[contador].at<float>(l,c);
+		   	   		ii++;
+		   		}
+			}
+		}
 
-	Mat_<FLT> test; //test-para pegar as dimensões da imagem utilizada;
-	le(test, images[0]); //pega uma imagem, assume-se que todas as imagens tem o mesmo tamanho
-	int imgArea = test.rows*test.cols;
-	float numberOfHits=0; //Número de acertos de predição
-	Mat results(numberOfSamples, 1, CV_32FC1); //Matriz com os resultados das predições
+		//treino do modelo com os dados
+		svm_model_recognition.train(training, outputs, Mat(), Mat(), params);
+	}
 
+	//predição para testar o modelo
+	std::string test_path = data_path_dir+ "/test_batch.bin";
+	std::vector<int> labels_test; //vetor que salva as classificações das imagens
+	std::vector<Mat> images_test; //vetor que salva as imagens
+	ler_bin(test_path, labels_test, images_test);
+	
+	
 	Mat outputs(numberOfSamples,1,CV_32FC1,true); //Construtor da matriz de saídas para o treino
 	Mat training(numberOfSamples,imgArea,CV_32FC1); //Construtor da matriz que conterá o dados de treino
-	Mat imgPredict(1,imgArea,CV_32FC1); //Construtor da matriz que conterá a imagem de teste
-	//Mat_<FLT> imgAux; le(imgAux, archives[numberOfTest]);//para pegar a imagem que será "deixada de fora"
-
-	//Colocando a imagem de predição como matriz de float
-	for(int aux=0; aux<numberOfSamples;aux++){
-		int ii=0;
-		for (int l = 0; l<test.rows; l++) {
-			for (int c = 0; c < test.cols; c++) {
-    	    	imgPredict.at<float>(0,ii) = imgAux(l,c);
-    	   		ii++;
-    		}
+		
+	for(int contador=0; contador<numberOfSamples; contador++){
+		int ii = 0; // Current column in training_mat
+		//printf("contador %d\n", contador);
+		//Mat_<FLT> image; le(image, images[contador]);//para pegar cada imagem
+		outputs.at<float>(contador,0) = labels[contador];
+		//printf("output %d\n",labels[contador]);
+		for (int l = 0; l<images[0].rows; l++) {
+	    	for (int c = 0; c < images[0].cols; c++) {
+	   	   		training.at<float>(contador,ii) = images[contador].at<float>(l,c);
+	   	   		ii++;
+	   		}
 		}
 	}
+
+	int numberOfPreds = images_test.size()-1;
+	float numberOfHits=0; //Número de acertos de predição
+	Mat results(numberOfPreds, 1, CV_32FC1); //Matriz com os resultados das predições
+
+	for(int n_pred=0; n_pred<numberOfPreds; n_pred++ ){
+		float prediction = svm_model_recognition.predict(images_test[n_pred]);
+		results.at<float>(n_pred,0) = prediction;
+		if(prediction==labels_test[n_pred]) numberOfHits++;
+		else {
+			printf("Correta = %.0f Classificada = %.0f \n", labels_test[n_pred], prediction);
+		}
+	}
+
+	float numberOfErrors = (float)numberOfPreds - numberOfHits;
+	float errors;
+	errors = ((float)(numberOfErrors/numberOfPreds))*100.0;
+	printf("***\nTotal de Erros: %.0f Numero de Testes: %d Porcentagem de Erros: %6.2f%%\n", numberOfErrors, numberOfPreds, errors);
+	
 
 	
 }

@@ -2,6 +2,7 @@
 #include <cekeikon.h>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 
 
@@ -50,7 +51,8 @@ void ler_bin(const string& filename, vector<int>& labels, vector<Mat>& images){
 	    			    							//(remember that we opened the file with this pointer at the end)
 	    		file.read (label, label_size); //then we read the file
 	    		
-	    		labels.push_back(atoi(label));
+				int label_int = static_cast<int>( *label);
+	    		labels.push_back(label_int);
 	    			    	
 	    		posicao+=1;
 	    		file.seekg (posicao, ios::beg);
@@ -93,6 +95,7 @@ int main(int argc, char const *argv[])
 			//"C:/Users/MC/Documents/2o semestre 2017/sistemas_inteligentes/ep_2/cifar-10-batches-bin"
 			
 			ler_bin(data_path, labels, images);
+			//printf("treino%d label0 %f label100 %f\n",n_train, labels[0], labels[100] );
 		}		
 
 	
